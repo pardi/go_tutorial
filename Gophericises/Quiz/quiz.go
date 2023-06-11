@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/csv"
+	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"strconv"
+	"time"
 )
 
 func compose_question_msg(num_question int, str []string) (msg string) {
@@ -26,10 +28,32 @@ func compare_answer(ans_correct int, ans_given int) (res bool) {
 
 	return
 }
+func parseflags() (csv_filename string, timer time.Duration) {
+
+	const (
+		default_CSV   = "problems.csv"
+		usage_csv     = "The file containing the questions/answers to the quiz. They must be numeric answers!"
+		default_timer = 30 * time.Second
+		usage_timer   = "The maximum timer for answering all questions"
+	)
+
+	flag.StringVar(&csv_filename, "file", default_CSV, usage_csv)
+	flag.StringVar(&csv_filename, "f", default_CSV, usage_csv+" (shorthand)")
+	flag.DurationVar(&timer, "timer", default_timer, usage_timer)
+	flag.DurationVar(&timer, "t", default_timer, usage_timer+" (shorthand)")
+
+	flag.Parse()
+
+	return
+}
 
 func main() {
 
-	data, err := os.Open("problems.csv")
+	// Get inputs from the command line
+	csv_filename, timer := parseflags()
+
+	// Open file
+	data, err := os.Open(csv_filename)
 
 	if err != nil {
 		log.Fatal(err)
@@ -40,6 +64,11 @@ func main() {
 
 	var num_answered int = 0
 	var num_questions int = 0
+
+	_ = time.AfterFunc(timer, func() {
+		fmt.Println("Sorry, the time is up!")
+		os.Exit(1)
+	})
 
 	for {
 		entry, err := csv_reader.Read()
